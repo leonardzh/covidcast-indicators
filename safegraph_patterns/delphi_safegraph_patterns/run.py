@@ -20,16 +20,32 @@ from .constants import METRICS, VERSIONS, SENSORS, GEO_RESOLUTIONS
 
 
 def get_wednesday_before(day):
+    """Obtain the first wednesday before the day."""
     # the weekday of any wednesday is 2 hence offset gives us the number of days
     # to the most recent wednesday
     offset = (day.weekday() - 2) % 7
     return day - timedelta(days=offset)
 
 def run_module(params):
+    """Run module for Safegraph patterns data.
+
+    The `params` argument is expected to have the following structure:
+    - "common":
+        - "export_dir": str, directory to write output
+        - "log_exceptions" (optional): bool, whether to log exceptions to file
+        - "log_filename" (optional): str, name of file to write logs
+    - "indicator":
+        - "aws_access_key_id": str, ID of access key for AWS S3
+        - "aws_secret_access_key": str, access key for AWS S3
+        - "aws_default_region": str, name of AWS S3 region
+        - "aws_endpoint": str, name of AWS S3 endpoint
+        - "n_core": int, number of cores to use for multithreaded processing
+        - "raw_data_dir": directory from which to read downloaded data from AWS,
+        - "sync": bool, whether to sync S3 data before running indicator
+    """
     start_time = time.time()
     export_dir = params["common"]["export_dir"]
-    n_core = params["indicator"]["n_core"]
-    static_file_dir = params["indicator"]["static_file_dir"]
+    #n_core = params["indicator"]["n_core"]
     logger = get_structured_logger(
         __name__, filename=params["common"].get("log_filename"),
         log_exceptions=params["common"].get("log_exceptions", True))
@@ -44,22 +60,17 @@ def run_module(params):
         end_day - timedelta(days=7*weeks_before)
         for weeks_before in range(n_weeks)
     ]
+    print(query_days)
     stats = []
-    brand_df = pd.read_csv(
-        join(static_file_dir, f"brand_info/brand_info_202106.csv")
-    )
-    brand_ids_all = brand_df.loc[
-        brand_df["naics_code"].isin([m[1] for m in METRICS]),
-        ["safegraph_brand_id", "naics_code"]
-    ]
-    process_day = partial(process, params=params, brand_df=brand_ids_all,
+    process_day = partial(process, params=params,
                           metrics=METRICS,
                           sensors=SENSORS,
                           geo_resolutions=GEO_RESOLUTIONS,
                           export_dir=export_dir,
-                          stats=stats
+                          stats=stats,
+                          logger=logger
                           )
-    process_day(query_days[-1])
+    process_day(query_days[0])
     #with mp.Pool(n_core) as pool:
     #    pool.map(process_day, query_days)
 
