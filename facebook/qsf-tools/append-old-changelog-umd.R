@@ -15,21 +15,21 @@ suppressPackageStartupMessages({
 
 add_rationales_from_old_changelog <- function(path_to_changelog, path_to_old_changelog) {
   # If path_to_old_changelog is provided, prefer it over existing notes column.
-  
+
     changelog <- read_csv(path_to_changelog, col_types = cols(
         .default = col_character(),
-        new_wave = col_double(),
-        old_wave = col_double()
+        new_version = col_double(),
+        old_version = col_double()
     )) 
     old_changelog <- read_csv(path_to_old_changelog, col_types = cols(
         .default = col_character(),
-        new_wave = col_double(),
-        old_wave = col_double()
+        new_version = col_double(),
+        old_version = col_double()
     )) %>%
-        select(new_wave, old_wave, variable_name, change_type,eu_version, notes)
+        select(new_version, old_version, variable_name, change_type,eu_version, notes)
     changelog <- changelog %>%
         select(-notes) %>%
-        left_join(old_changelog, by=c("new_wave", "old_wave", "variable_name", "change_type","eu_version"))
+        left_join(old_changelog, by=c("new_version", "old_version", "variable_name", "change_type","eu_version"))
 
 
     write_excel_csv(changelog, path_to_changelog, quote="needed")

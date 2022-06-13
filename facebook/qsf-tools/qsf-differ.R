@@ -59,7 +59,8 @@ diff_qsf_files <- function(old_qsf_path, new_qsf_path, output_dir,
 get_qsf_file <- function(path, survey_version,
                          keep_items = c("QuestionID", "DataExportTag",
                                         "QuestionText", "QuestionType",
-                                        "Choices", "Answers", "DisplayLogic")
+                                        "Choices", "Answers", "DisplayLogic",
+                                        "InPageDisplayLogic")
 ) {
   wave <- get_wave(path)
   # Read file as json.
@@ -145,6 +146,10 @@ get_qsf_file <- function(path, survey_version,
     # "Description".
     if ("DisplayLogic" %in% names(question)) {
       display_logic <- unlist(question$DisplayLogic)
+      question$DisplayLogic <- sort(display_logic[!str_detect(names(display_logic), "Description")])
+    }
+    if ("InPageDisplayLogic" %in% names(question)) {
+      display_logic <- unlist(question$InPageDisplayLogic)
       question$DisplayLogic <- sort(display_logic[!str_detect(names(display_logic), "Description")])
     }
     
@@ -259,7 +264,19 @@ diff_question <- function(names, change_type=c("Choices", "QuestionText",
   
   changed <- list()
   for (question in names) {
-    if ( !identical(old_qsf[[question]][[change_type]], new_qsf[[question]][[change_type]]) ) {
+    old_contents <- old_qsf[[question]][[change_type]]
+    new_contents <- new_qsf[[question]][[change_type]]
+    
+    if (change_type == "DisplayLogic") {
+      # Ignore in-page status.
+      old_contents[["inPage"]] <- "FALSE"
+      new_contents[["inPage"]] <- "FALSE" 
+      
+      # Sort items by name for more robust comparison.
+      old_contents <- old_contents[names(old_contents) %>% sort()]
+      new_contents <- new_contents[names(new_contents) %>% sort()]
+    }
+    if ( !identical(old_contents, new_contents) ) {
       changed_subquestions <- c()
       if (change_type == "Subquestions") {
         subquestion_codes <- unique(
